@@ -108,6 +108,15 @@ jobs:
             curl -fL https://apt.procurs.us/bootstraps/1900/bootstrap-iphoneos-arm64.tar.zst -o bootstrap_1900.tar.zst
           fi
 
+      - name: Prepare BaseBin headers (.include)
+        run: |
+          set -euxo pipefail
+          rm -rf BaseBin/.include
+          mkdir -p BaseBin/.include
+          cp -r BaseBin/_external/include/* BaseBin/.include/
+          # The selected iOS SDK already provides XPC; avoid a duplicate module.
+          rm -rf BaseBin/.include/xpc
+
       - name: Build Dopamine
         run: |
           set -euxo pipefail
