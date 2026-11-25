@@ -52,11 +52,16 @@ jobs:
           from pathlib import Path
           p = Path("install-theos.sh")
           s = p.read_text()
-          old = "\\tget_sdks\\n"
-          new = '\\tmkdir -p "$THEOS/sdks"\\n\\t: > "$THEOS/sdks/sdk"\\n'
-          if old not in s:
-              raise SystemExit("Could not find the get_sdks call in the downloaded Theos installer")
-          p.write_text(s.replace(old, new, 1))
+          lines = s.splitlines()
+          replaced = False
+          for i, line in enumerate(lines):
+              if line.strip() == "get_sdks" and i > 0 and lines[i - 1].strip() == "get_theos":
+                  lines[i] = "\\t# SDK download is handled by the workflow using a pinned SDK"
+                  replaced = True
+                  break
+          if not replaced:
+              raise SystemExit("Could not find the SDK installation call in the downloaded Theos installer")
+          p.write_text("\\n".join(lines) + "\\n")
           PY
           bash install-theos.sh
           curl -fL https://github.com/theos/sdks/releases/latest/download/iPhoneOS16.5.sdk.tar.xz -o "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz"
