@@ -243,7 +243,7 @@ extern char **environ;
 
 - (NSString *)versionSupportString
 {
-    return @"Supported: iOS 18.0-18.7.10 ; iOS 26.0-26.6.1; iOS 27db1-iOS 27.0.1";
+    return @"Supported: iOS 18.0-18.7.10 ; iOS 26.0-26.6.1; iOS 27db1-iOS 27.0.1 (Userland)";
 }
 
 - (BOOL)isInstalledThroughTrollStore
