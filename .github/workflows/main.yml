@@ -2,22 +2,12 @@ name: "Dopamine: build and upload"
 
 on:
   push:
-    branches:
-      - '*'
-    paths-ignore:
-      - ".gitignore"
+    branches: ['*']
+    paths-ignore: [".gitignore"]
   pull_request:
-    branches:
-      - '*'
-    paths-ignore:
-      - ".gitignore"
+    branches: ['*']
+    paths-ignore: [".gitignore"]
   workflow_dispatch:
-  schedule:
-    - cron: '0 0 1 1 *'
-    - cron: '0 0 1 4 *'
-    - cron: '0 0 30 6 *'
-    - cron: '0 0 28 9 *'
-    - cron: '0 0 27 12 *'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -33,76 +23,104 @@ jobs:
           xcode-version: latest-stable
 
       - name: Checkout
-        uses: actions/checkout@main
+        uses: actions/checkout@v4
         with:
-            submodules: recursive
+          submodules: recursive
 
       - name: Install Procursus
         uses: dhinakg/procursus-action@main
         with:
           packages: ldid findutils sed coreutils make
 
-      - name: Install better GNU Make
+      - name: Install build tools
         run: |
-          brew install make
-          echo "PATH=$(brew --prefix make)/libexec/gnubin:$PATH" >> $GITHUB_ENV
+          brew install make libarchive openssl
+          echo "PATH=$(brew --prefix make)/libexec/gnubin:$PATH" >> "$GITHUB_ENV"
+
+      - name: Cache Theos and iOS SDK
+        id: theos-cache
+        uses: actions/cache@v4
+        with:
+          path: theos
+          key: theos-${{ runner.os }}-iphoneos16.5-v1
 
       - name: Install THEOS
+        if: steps.theos-cache.outputs.cache-hit != 'true'
         run: |
-          set -x
-          export BASEDIR="$(pwd)"
-          export THEOS="${BASEDIR}/theos"
-          mkdir -p $THEOS
-          curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos >> install-theos.sh
-          gsed -E "/^\s*get_theos\s*$/,+1 s/^(\s*)(get_sdks)\s*$/\1mkdir -p \${THEOS}\/sdks\n\1touch \${THEOS}\/sdks\/sdk\n\1\2/g" -i install-theos.sh
+          set -euxo pipefail
+          export BASEDIR="$PWD"
+          export THEOS="$BASEDIR/theos"
+          mkdir -p "$THEOS"
+          curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos -o install-theos.sh
+          gsed -E "/^\s*get_theos\s*$/,+1 s/^(\s*)(get_sdks)\s*$/\1mkdir -p $THEOS/sdks\n\1touch $THEOS/sdks/sdk\n\1\2/g" -i install-theos.sh
           bash install-theos.sh
-          curl -L https://github.com/theos/sdks/releases/latest/download/iPhoneOS16.5.sdk.tar.xz --output $THEOS/sdks/iPhoneOS16.5.sdk.tar.xz
-          gunzip $THEOS/sdks/iPhoneOS16.5.sdk.tar.xz
-          tar -xf $THEOS/sdks/iPhoneOS16.5.sdk.tar -C $THEOS/sdks
-          rm $THEOS/sdks/iPhoneOS16.5.sdk.tar
-          cd $BASEDIR
+          curl -fL https://github.com/theos/sdks/releases/latest/download/iPhoneOS16.5.sdk.tar.xz -o "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz"
+          tar -xJf "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz" -C "$THEOS/sdks"
+          rm "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz"
 
-      - name: Build and Install trustcache
+      - name: Cache trustcache
+        id: trustcache-cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/trustcache
+          key: trustcache-${{ runner.os }}-arm64-openssl-v1
+
+      - name: Build trustcache
+        if: steps.trustcache-cache.outputs.cache-hit != 'true'
         run: |
-          set -x
-          git clone https://github.com/CRKatri/trustcache
-          cd trustcache
+          set -euxo pipefail
+          git clone --depth 1 https://github.com/CRKatri/trustcache .cache/trustcache-src
+          cd .cache/trustcache-src
           export CFLAGS="$CFLAGS -I$(brew --prefix openssl)/include -arch arm64"
           export LDFLAGS="$LDFLAGS -L$(brew --prefix openssl)/lib -arch arm64"
-          gmake -j$(sysctl -n hw.logicalcpu) OPENSSL=1
-          sudo cp trustcache /opt/procursus/bin/
+          gmake -j"$(sysctl -n hw.logicalcpu)" OPENSSL=1
+          mkdir -p ../trustcache
+          cp trustcache ../trustcache/trustcache
+
+      - name: Install trustcache
+        run: |
+          sudo cp .cache/trustcache/trustcache /opt/procursus/bin/trustcache
+          sudo chmod +x /opt/procursus/bin/trustcache
 
       - name: Set Environment Variables
         run: |
-          set -x
+          set -euxo pipefail
           T2=$(TZ=UTC-2 date +'%Y%m%d_%H%M%S')
-          TS=$(date -j -f "%Y%m%d_%H%M%S" "${T2}" +%s)
+          TS=$(date -j -f "%Y%m%d_%H%M%S" "$T2" +%s)
           SHASH=$(git rev-parse --short HEAD)
-          echo "ctime=${T2}" >> $GITHUB_ENV
-          echo "ctimestamp=${TS}" >> $GITHUB_ENV
-          echo "shorthash=${SHASH}" >> $GITHUB_ENV
+          echo "ctime=$T2" >> "$GITHUB_ENV"
+          echo "ctimestamp=$TS" >> "$GITHUB_ENV"
+          echo "shorthash=$SHASH" >> "$GITHUB_ENV"
 
-      - name: Install libarchive
-        run: |
-          brew install libarchive
+      - name: Cache Dopamine bootstraps
+        uses: actions/cache@v4
+        with:
+          path: |
+            Application/Dopamine/Resources/bootstrap_1800.tar.zst
+            Application/Dopamine/Resources/bootstrap_1900.tar.zst
+          key: dopamine-bootstraps-arm64-v1
 
-      - name: Download Bootstraps
+      - name: Download missing bootstraps
         run: |
-            set -x
-            cd Application/Dopamine/Resources
-            ./download_bootstraps.sh
+          set -euxo pipefail
+          cd Application/Dopamine/Resources
+          if [ ! -s bootstrap_1800.tar.zst ]; then
+            curl -fL https://apt.procurs.us/bootstraps/1800/bootstrap-iphoneos-arm64.tar.zst -o bootstrap_1800.tar.zst
+          fi
+          if [ ! -s bootstrap_1900.tar.zst ]; then
+            curl -fL https://apt.procurs.us/bootstraps/1900/bootstrap-iphoneos-arm64.tar.zst -o bootstrap_1900.tar.zst
+          fi
 
-      - name: Build
+      - name: Build Dopamine
         run: |
-          set -x
-          export BASEDIR="$(pwd)"
-          export THEOS="${BASEDIR}/theos"
-          gmake -j$(sysctl -n hw.logicalcpu) NIGHTLY=1
+          set -euxo pipefail
+          export BASEDIR="$PWD"
+          export THEOS="$BASEDIR/theos"
+          gmake -j"$(sysctl -n hw.logicalcpu)" NIGHTLY=1
 
       - name: Upload Artifact
-        id: dopamine-latest-upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v4
         with:
           name: Dopamine
-          path: |
-            ${{ github.workspace }}/Application/Dopamine.ipa
+          path: Application/Dopamine.ipa
+          if-no-files-found: error
