@@ -2,7 +2,9 @@
 
 # Dopamine
 
-An fake look semi-untethered jailbreak that edits mobilegesalt for iOS 16.0 - 17.10, iOS 16.0 - 18.7.1, 26.0 - 26.6.1 and iOS 27 dev beta 1 - 27.0.1. More details will follow here soon.
+A MobileGestalt editor based on Dopamine. Displayed support range: iOS 18.0-18.7.10 ; iOS 26.0-26.6.1; iOS 27db1-iOS 27.0.1.
+
+Note: the displayed range is informational. Actual exploit and device compatibility is determined at runtime by the available exploit implementations.
 
 Please note that all issues related to version support will be deleted without response.
 
