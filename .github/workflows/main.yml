@@ -64,7 +64,8 @@ jobs:
           p.write_text("\\n".join(lines) + "\\n")
           PY
           bash install-theos.sh
-          curl -fL https://github.com/theos/sdks/releases/latest/download/iPhoneOS16.5.sdk.tar.xz -o "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz"
+          mkdir -p "$THEOS/sdks"
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fL https://github.com/theos/sdks/releases/latest/download/iPhoneOS16.5.sdk.tar.xz -o "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz"
           tar -xJf "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz" -C "$THEOS/sdks"
           rm "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz"
 
