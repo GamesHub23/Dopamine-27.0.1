@@ -52,7 +52,7 @@ jobs:
           export THEOS="$BASEDIR/theos"
           mkdir -p "$THEOS"
           curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos -o install-theos.sh
-          gsed -E "/^\s*get_theos\s*$/,+1 s/^(\s*)(get_sdks)\s*$/\1mkdir -p $THEOS/sdks\n\1touch $THEOS/sdks/sdk\n\1\2/g" -i install-theos.sh
+          gsed -E "/^\s*get_theos\s*$/,+1 s/^(\s*)(get_sdks)\s*$/\1mkdir -p \${THEOS}\/sdks\n\1touch \${THEOS}\/sdks\/sdk\n\1\2/g" -i install-theos.sh
           bash install-theos.sh
           curl -fL https://github.com/theos/sdks/releases/latest/download/iPhoneOS16.5.sdk.tar.xz -o "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz"
           tar -xJf "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz" -C "$THEOS/sdks"
@@ -69,6 +69,7 @@ jobs:
         if: steps.trustcache-cache.outputs.cache-hit != 'true'
         run: |
           set -euxo pipefail
+          mkdir -p .cache
           git clone --depth 1 https://github.com/CRKatri/trustcache .cache/trustcache-src
           cd .cache/trustcache-src
           export CFLAGS="$CFLAGS -I$(brew --prefix openssl)/include -arch arm64"
