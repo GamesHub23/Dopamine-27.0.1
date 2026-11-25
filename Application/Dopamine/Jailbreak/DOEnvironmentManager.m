@@ -245,7 +245,7 @@ extern char **environ;
 {
     // Display the requested support matrix. Actual exploit availability is
     // still checked separately by isSupported and the exploit managers.
-    return @"Supported: iOS 18.0-18.7.10 ; iOS 26.0-26.6.1; iOS 27db1-iOS 27.0.1";
+    return @"iOS version check: Disabled";
 }
 
 - (BOOL)isInstalledThroughTrollStore
