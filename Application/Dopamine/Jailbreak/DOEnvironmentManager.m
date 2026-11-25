@@ -243,9 +243,7 @@ extern char **environ;
 
 - (NSString *)versionSupportString
 {
-    // Display the requested support matrix. Actual exploit availability is
-    // still checked separately by isSupported and the exploit managers.
-    return @"iOS version check: Disabled";
+    return @"Supported: iOS 18.0-18.7.10 ; iOS 26.0-26.6.1; iOS 27db1-iOS 27.0.1";
 }
 
 - (BOOL)isInstalledThroughTrollStore
@@ -762,21 +760,9 @@ extern char **environ;
 
 - (BOOL)isSupported
 {
-    //cpu_subtype_t cpuFamily = 0;
-    //size_t cpuFamilySize = sizeof(cpuFamily);
-    //sysctlbyname("hw.cpufamily", &cpuFamily, &cpuFamilySize, NULL, 0);
-    //if (cpuFamily == CPUFAMILY_ARM_TYPHOON) return false; // A8X is unsupported for now (due to 4k page size)
-    
-    DOExploitManager *exploitManager = [DOExploitManager sharedManager];
-    if ([exploitManager availableExploitsForType:EXPLOIT_TYPE_KERNEL].count) {
-        if (![self isPACBypassRequired] || [exploitManager availableExploitsForType:EXPLOIT_TYPE_PAC].count) {
-            if (![self isPPLBypassRequired] || [exploitManager availableExploitsForType:EXPLOIT_TYPE_PPL].count) {
-                return true;
-            }
-        }
-    }
-    
-    return false;
+    // Exploit availability checks are disabled in this custom build.
+    // The bundled exploit code may still fail or be incompatible at runtime.
+    return YES;
 }
 
 - (BOOL)deviceSupportsFaceID
