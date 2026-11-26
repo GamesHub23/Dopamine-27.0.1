@@ -83,8 +83,8 @@ jobs:
           mkdir -p .cache
           git clone --depth 1 https://github.com/CRKatri/trustcache .cache/trustcache-src
           cd .cache/trustcache-src
-          export CFLAGS="$CFLAGS -I$(brew --prefix openssl)/include -arch arm64"
-          export LDFLAGS="$LDFLAGS -L$(brew --prefix openssl)/lib -arch arm64"
+          export CFLAGS="${CFLAGS:-} -I$(brew --prefix openssl)/include -arch arm64"
+          export LDFLAGS="${LDFLAGS:-} -L$(brew --prefix openssl)/lib -arch arm64"
           gmake -j"$(sysctl -n hw.logicalcpu)" OPENSSL=1
           mkdir -p ../trustcache
           cp trustcache ../trustcache/trustcache
