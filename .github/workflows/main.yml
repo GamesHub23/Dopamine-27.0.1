@@ -61,7 +61,7 @@ jobs:
                   break
           if not replaced:
               raise SystemExit("Could not find the SDK installation call in the downloaded Theos installer")
-          p.write_text("\\n".join(lines) + "\\n")
+          p.write_text("\n".join(lines) + "\n")
           PY
           bash install-theos.sh
           mkdir -p "$THEOS/sdks"
